@@ -2,4 +2,4 @@
 jupyter
 matplotlib
 numpy
-pytorch
+torch
