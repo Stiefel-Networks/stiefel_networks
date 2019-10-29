@@ -1,5 +1,9 @@
 
 jupyter
-matplotlib
+
 numpy
 torch
+
+pandas
+matplotlib
+seaborn
