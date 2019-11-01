@@ -6,6 +6,18 @@ def random_square_matrix(matrix_size):
         .randn(matrix_size ** 2)\
         .reshape((matrix_size, matrix_size))
 
+def dependent_square_matrix(n,delta):
+    vec = np.zeros(n*n)
+    test = np.random.uniform(0,1,size=n*n)
+    sampleInit = np.random.uniform(0,1,size=n*n)
+    vec[0] = np.random.uniform(0,1)
+    for i in range(1,n*n):
+        if test[i] <= delta:
+            vec[i] = vec[i-1]
+        else:
+            vec[i] = sampleInit[i]
+    randomMat = vec.reshape((n,n))
+    return randomMat
 
 def append_random_row_and_column(matrix):
     new_matrix = random_square_matrix(matrix.shape[0] + 1)
