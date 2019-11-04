@@ -58,6 +58,20 @@ class MetricsTest(unittest.TestCase):
                 continue
             self.assertGreater(cosine_similarity_matrix[row, col], 0.5)
 
+    def test_all_equal(self):
+        bunched_up_matrix = np.array([
+            [5, 5, 5],
+            [5, 5, 5],
+            [5, 5, 5],
+        ])
+        # Columns are exactly dependent, so mean similarity should be maximized (1.0)
+        self.assertAlmostEqual(metrics.mean_cosine_similarity(bunched_up_matrix), 1)
+
+        # Same goes for elements of the similarity matrix
+        cosine_similarity_matrix = metrics.cosine_similarity_matrix(bunched_up_matrix)
+        for row, col in zip(range(0, 3), range(0, 3)):
+            self.assertAlmostEqual(cosine_similarity_matrix[row, col], 1)
+
 
 if __name__ == '__main__':
     unittest.main()
