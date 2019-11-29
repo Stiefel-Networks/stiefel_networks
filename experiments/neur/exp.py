@@ -1,7 +1,8 @@
 import torch
 import numpy as np
-from math import pi
+
 from ortho.metrics import mean_cosine_similarity
+
 
 
 class MExp(torch.autograd.Function):
@@ -15,7 +16,7 @@ class MExp(torch.autograd.Function):
         A = X
 
         # Rest of terms: + (X/2)*X + (X/3*X/2)*X + (X/4*X/3*X/2)*X ...
-        for i in torch.arange(2, 100):
+        for i in torch.arange(2, 40):
             A = torch.mm(A / i, X)
             eX = eX + A
 
@@ -30,22 +31,10 @@ class MExp(torch.autograd.Function):
 
 mexp = MExp.apply  # convenient alias
 
-def exp_map(B, x):
-    X = torch.sum(B * x, 0)
-    return mexp(X)
 
-def ortho_basis(n):
 
-    indices = torch.triu(torch.arange(n*n).reshape(n,n),diagonal=1)
-    basis_indices = indices[indices>0]
 
-    num = basis_indices.numel()
 
-    B = torch.zeros(num, n*n)
-    B[torch.arange(num), basis_indices] = 1
-    B = B.reshape((num, n, n))
-    print(B)
-    return B - B.permute((0,2,1))
 
 if __name__ == "__main__":
     print(ortho_basis(10))

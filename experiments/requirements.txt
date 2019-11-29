@@ -1,9 +1,7 @@
-
 jupyter
-
+ipykernel
 numpy
 torch
-
 pandas
 matplotlib
 seaborn
