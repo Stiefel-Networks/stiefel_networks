@@ -1,7 +1,7 @@
 # import neur.exp as exp
 import torch
 import torch.nn.functional as F
-from experiments.neur.resnet import Res, ResSVD
+from neur.resnet import Res, ResSVD
 import matplotlib.pyplot as plt
 
 num_batches = 3000

@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-from experiments.neur.module import OrthoLinear, SVDLinear, SVDLinearWithInverse
+from neur.module import OrthoLinear, SVDLinear, SVDLinearWithInverse
 import torch.nn.functional as F
 
 
