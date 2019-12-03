@@ -1,7 +1,6 @@
 import torch.nn as nn
 import torch
-from neur.module import OrthoLinear, SVDLinear, SVDLinearWithInverse
-import torch.nn.functional as F
+from tools.neur.module import OrthoLinear, SVDLinear, SVDLinearWithInverse
 
 
 class ResBlock(nn.Module):

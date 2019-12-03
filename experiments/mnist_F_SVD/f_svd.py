@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
-from neur.module import SVDLinear
+from tools.neur.module import SVDLinear
 
 class FSVD(nn.Module):
 

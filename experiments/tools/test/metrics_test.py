@@ -1,7 +1,7 @@
 import unittest
 
 import numpy as np
-from ortho import metrics
+from tools.ortho import metrics
 
 
 class MetricsTest(unittest.TestCase):

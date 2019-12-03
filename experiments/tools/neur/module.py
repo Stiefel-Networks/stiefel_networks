@@ -2,7 +2,7 @@ import torch
 from torch.nn.parameter import Parameter
 from math import pi
 import torch.nn.init as init
-import neur.functional as fn
+import tools.neur.functional as fn
 import torch.nn.functional as F
 
 

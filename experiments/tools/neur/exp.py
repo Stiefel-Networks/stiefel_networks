@@ -1,8 +1,4 @@
 import torch
-import numpy as np
-
-from ortho.metrics import mean_cosine_similarity
-
 
 
 class MExp(torch.autograd.Function):
@@ -32,13 +28,15 @@ class MExp(torch.autograd.Function):
 mexp = MExp.apply  # convenient alias
 
 
-
-
-
-
 if __name__ == "__main__":
+    import numpy as np
+
+    from tools.neur.functional import ortho_basis, exp_map
+    from tools.ortho.metrics import mean_cosine_similarity
+
     print(ortho_basis(10))
 
+    # TODO Logan this call is broken but I left it here in case you think that indicates a problem.
     orth = exp_map(ortho_basis(10), torch.rand(45).reshape(-1,1,1))
     print(orth)
 

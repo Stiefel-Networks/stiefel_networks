@@ -46,12 +46,12 @@ def get_tiny_mnist(batch_size=128):
 
 if __name__ == "__main__":
 
-    batch_size = 64
+    batch_size = 32
     tiny_mnist = get_tiny_mnist(batch_size=batch_size)
 
     f_svd_net = FSVD(100, 10, layer_count=4, layer_width=512).to(device=get_best_device())
 
-    optimizer = torch.optim.SGD(f_svd_net.parameters(), lr=0.1, momentum=0.9)
+    optimizer = torch.optim.SGD(f_svd_net.parameters(), lr=0.001, momentum=0.9)
     for epoch in range(100):
         for batch, (inputs, labels) in enumerate(tiny_mnist):
             optimizer.zero_grad()

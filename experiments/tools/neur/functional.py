@@ -1,5 +1,5 @@
 import torch
-from neur.expm import expm_skew
+from tools.neur.expm import expm_skew
 import torch.nn.functional as F
 
 def ortho_basis(n):

@@ -1,7 +1,7 @@
 # import neur.exp as exp
 import torch
 import torch.nn.functional as F
-from neur.resnet import Res, ResSVD
+from tools.neur.resnet import ResSVD
 import matplotlib.pyplot as plt
 
 num_batches = 3000
@@ -22,6 +22,8 @@ for batch_index in range(num_batches):
 
     optimizer.zero_grad()
 
+    # TODO Logan something in our fiddling broke this call.
+    #      torch.meshgrid is getting a Tensor rather than a Number for the size n
     outputs = model(inputs)
 
     loss = F.mse_loss(outputs, values)
