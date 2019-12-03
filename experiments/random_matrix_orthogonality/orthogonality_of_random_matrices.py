@@ -2,7 +2,7 @@ import seaborn as sns
 import pandas as pd
 
 from tools.ortho.metrics import mean_cosine_similarity
-from tools.ortho.util import random_square_matrix
+from tools.ortho.matrix import random_square_matrix
 
 
 def main():

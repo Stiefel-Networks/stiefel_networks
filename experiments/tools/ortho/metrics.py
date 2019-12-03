@@ -1,6 +1,6 @@
 import numpy as np
 
-from tools.ortho.util import normalize_columns
+from tools.ortho.matrix import normalize_columns
 
 
 def cosine_similarity_matrix(matrix):
