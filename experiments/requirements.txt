@@ -2,6 +2,7 @@ jupyter
 ipykernel
 numpy
 torch
+torchvision
 pandas
 matplotlib
 seaborn
