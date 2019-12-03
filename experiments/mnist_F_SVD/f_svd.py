@@ -13,9 +13,9 @@ class FSVD(nn.Module):
         hidden = []
         for _layer in range(layer_count):
             hidden.append(SVDLinear(layer_width, layer_width, bias))
-
-            # TODO: we might need to move relu after the batchnorm?
             hidden.append(nn.ReLU())
+
+            # TODO: are we sure we should be batchnorming?
             hidden.append(nn.BatchNorm1d(layer_width))
 
         self.hidden = nn.Sequential(*hidden)
