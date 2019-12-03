@@ -14,8 +14,11 @@ def ortho_basis(n):
     B = B.reshape((num, n, n))
     return B - B.permute((0,2,1))
 
-def exp_map(B, x):
-    X = torch.sum(B * x, 0)
+def exp_map(n, x):
+    mx, my = torch.meshgrid(torch.arange(n),torch.arange(n))
+    X = torch.zeros((n,n),dtype=torch.float32,device=x.device)
+    X[mx<my]=x
+    X = X-X.permute(1,0)
     return expm_skew(X)
 
 def OrthoLinear(input, weight, bias):
@@ -24,14 +27,11 @@ def OrthoLinear(input, weight, bias):
     return F.linear(input, W, bias)
 
 def SVDLinear(input, dim, Uweight, Sweight, Vweight, bias):
-    Ubasis = ortho_basis(dim[0])
-    Vbasis = ortho_basis(dim[1])
-    U = exp_map(Ubasis, Uweight)
-    V = exp_map(Vbasis, Vweight)
-
+    U = exp_map(dim[0], Uweight)[:,:Sweight.numel()]
+    V = exp_map(dim[1], Vweight)
     W = torch.mm(U*Sweight.reshape(1,-1), V.t())
     if bias is not None:
-        return torch.addmm(bias, input, W.t())
+        return torch.addmm(bias, input, W)
     else:
         return torch.mm(input,W.t())
 
