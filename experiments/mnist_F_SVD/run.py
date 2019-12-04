@@ -150,16 +150,61 @@ def main(hyperparams, run_name):
 
         record_epoch(epochs_progress, run_start, epoch, samples_trained, f_svd_net, args['use_gpu'])
         save_run_data(db, run_name, run_number, run_start)
+        print("Run duration: {} sec".format((datetime.datetime.now() - run_start).seconds))
 
 
 if __name__ == "__main__":
 
     # fast version for testing
+    # main({
+    #     'batch_size': 5000,
+    #     'layer_width': 32,
+    #     'learning_rate': 0.01,
+    #     'epochs': 2,
+    #     'num_runs': 2,
+    #     'use_gpu': False,
+    # }, 'fast_test')
+
+    # Run on CPU for width 4 to width 128, as it's faster
+    for width_exponent in range(2, 8):
+        layer_width = 2 ** width_exponent
+        main({
+            'batch_size': 64,
+            'layer_width': layer_width,
+            'learning_rate': 0.001,
+            'epochs': 50,
+            'num_runs': 2,
+            'use_gpu': False,
+        }, 'h={} b=64 lr=0.001 e=50'.format(layer_width))
+
+    # Change to GPU for width 256
+    layer_width = 2 ** 8
     main({
-        'batch_size': 5000,
-        'layer_width': 32,
-        'learning_rate': 0.01,
-        'epochs': 2,
+        'batch_size': 64,
+        'layer_width': layer_width,
+        'learning_rate': 0.001,
+        'epochs': 50,
         'num_runs': 2,
         'use_gpu': True,
-    }, 'fast_test')
+    }, 'h={} b=64 lr=0.001 e=50'.format(layer_width))
+
+    # Start cranking down number of epochs, as runtimes start to get hairy.
+    layer_width = 2 ** 9
+    main({
+        'batch_size': 64,
+        'layer_width': layer_width,
+        'learning_rate': 0.001,
+        'epochs': 20,
+        'num_runs': 2,
+        'use_gpu': True,
+    }, 'h={} b=64 lr=0.001 e=20'.format(layer_width))
+
+    layer_width = 2 ** 10
+    main({
+        'batch_size': 64,
+        'layer_width': layer_width,
+        'learning_rate': 0.001,
+        'epochs': 10,
+        'num_runs': 2,
+        'use_gpu': True,
+    }, 'h={} b=64 lr=0.001 e=10'.format(layer_width))
