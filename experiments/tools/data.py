@@ -1,7 +1,67 @@
+import os
+
 import torch
 import torchvision
 
 from tools.util import get_gpu
+
+
+DATA_DIR = os.path.dirname(os.path.realpath(__file__))
+
+
+def get_downsampler():
+    # Compose a bilinear downsample by a factor of 2, then downsample to final size.
+    # This avoids some aliasing, because it's equivalent to a single box blur.
+    return torchvision.transforms.Compose([
+        torchvision.transforms.Resize((14, 14)),
+        torchvision.transforms.Resize((10, 10)),
+        torchvision.transforms.ToTensor(),
+    ])
+
+
+def get_tiny_mnist_test(use_gpu=True):
+    """
+    Returns the standard test MNIST set, unshuffled with large batches, optionally gpu-ready.
+    """
+    test_dataset = _get_mnist(training=False)
+    data_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        1000,
+        num_workers=8,
+    )
+
+    if use_gpu:
+        return DeviceDataLoader(data_loader, get_gpu())
+    else:
+        return data_loader
+
+
+def get_tiny_mnist(batch_size=32, use_gpu=True):
+    """
+    Returns the training MNIST set shuffled, batched, and optionally gpu-ready.
+    """
+    train_dataset = _get_mnist(training=True)
+    data_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size,
+        num_workers=16,
+        shuffle=True
+    )
+
+    if use_gpu:
+        return DeviceDataLoader(data_loader, get_gpu())
+    else:
+        return data_loader
+
+
+def _get_mnist(training=True):
+    train_dataset = torchvision.datasets.MNIST(
+        root=DATA_DIR,
+        download=True,
+        train=training,
+        transform=get_downsampler(),
+    )
+    return train_dataset
 
 
 # GPU loading code from
@@ -23,21 +83,3 @@ def to_device(data, device):
     if isinstance(data, (list, tuple)):
         return [to_device(x, device) for x in data]
     return data.to(device, non_blocking=True)
-
-
-def get_tiny_mnist(batch_size=128, use_gpu=True):
-    # Compose a bilinear downsample by a factor of 2, then downsample to final size.
-    # This avoids some aliasing, because it's a box filter!
-    downsample = torchvision.transforms.Compose([
-        torchvision.transforms.Resize((14, 14)),
-        torchvision.transforms.Resize((10, 10)),
-        torchvision.transforms.ToTensor(),
-    ])
-    dataset = torchvision.datasets.MNIST(root='./data', download=True, transform=downsample)
-
-    data_loader = torch.utils.data.DataLoader(dataset, batch_size, num_workers=16)
-
-    if use_gpu:
-        return DeviceDataLoader(data_loader, get_gpu())
-    else:
-        return data_loader

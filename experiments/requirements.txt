@@ -3,6 +3,7 @@ ipykernel
 numpy
 torch
 torchvision
+tqdm
 pandas
 matplotlib
 seaborn
