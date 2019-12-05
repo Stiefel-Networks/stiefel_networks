@@ -134,19 +134,19 @@ if __name__ == "__main__":
     parametrization = 'standard'
 
     # Fast version for testing
-    main({
-        'parametrization': parametrization,
-        'batch_size': 100,
-        'layer_width': 32,
-        'learning_rate': 0.01,
-        'epochs': 5,
-        'num_runs': 2,
-        'use_gpu': False,
-        'test_mode': True,
-    }, 'fast_test')
+    # main({
+    #     'parametrization': parametrization,
+    #     'batch_size': 100,
+    #     'layer_width': 32,
+    #     'learning_rate': 0.01,
+    #     'epochs': 5,
+    #     'num_runs': 2,
+    #     'use_gpu': False,
+    #     'test_mode': True,
+    # }, 'fast_test')
 
     # Run on CPU for width 4 to width 128, as it's faster
-    # for width_exponent in range(1, 8):
+    # for width_exponent in range(2, 8):
     #     layer_width = 2 ** width_exponent
     #     epochs = 100
     #     main({
@@ -173,17 +173,17 @@ if __name__ == "__main__":
     # }, 'h={} b=64 lr=0.001 e={}0 [{}]'.format(layer_width, epochs, parametrization))
     #
     # # Start cranking down number of epochs, as runtimes start to get hairy.
-    # layer_width = 2 ** 9
-    # epochs = 50
-    # main({
-    #     'parametrization': 'svd',
-    #     'batch_size': 64,
-    #     'layer_width': layer_width,
-    #     'learning_rate': 0.001,
-    #     'epochs': epochs,
-    #     'num_runs': 2,
-    #     'use_gpu': True,
-    # }, 'h={} b=64 lr=0.001 e={} [{}]'.format(layer_width, epochs, parametrization))
+    layer_width = 2 ** 9
+    epochs = 50
+    main({
+        'parametrization': 'svd',
+        'batch_size': 64,
+        'layer_width': layer_width,
+        'learning_rate': 0.001,
+        'epochs': epochs,
+        'num_runs': 2,
+        'use_gpu': True,
+    }, 'h={} b=64 lr=0.001 e={} [{}]'.format(layer_width, epochs, parametrization))
     #
     # layer_width = 2 ** 10
     # epochs = 25

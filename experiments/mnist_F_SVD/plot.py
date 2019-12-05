@@ -19,6 +19,7 @@ def plot_epoch_test_train_loss(run_data, plot_directory=None):
     plt.plot(x, train_loss, label="Train Loss")
 
     plt.title("Width {} F_SVD\nLoss vs. Epoch".format(run_data["hyperparameters"]["layer_width"]))
+    plt.legend()
 
     if plot_directory is not None:
         plt.savefig(os.path.join(plot_directory, "test_train_loss.pdf"))
@@ -68,8 +69,9 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
             layerwise_singular_values[layer].append(layer_singular_values)
 
     # We deal with lists because singular value arrays are not all the same size.
-    fig, axes = plt.subplots(len(layerwise_singular_values), 1, constrained_layout=True, figsize=(6.4, 10.))
-    fig.suptitle("Width {} F_SVD - Singular Value Density vs. Epoch".format(run_data["hyperparameters"]["layer_width"]), y=1.0)
+    fig, axes = plt.subplots(len(layerwise_singular_values), 1, figsize=(6.4, 10.))
+    plt.subplots_adjust(top=0.92, bottom=0.05)
+    fig.suptitle("Width {} F_SVD - Singular Value Density vs. Epoch".format(run_data["hyperparameters"]["layer_width"]))
     for layer, singular_values in enumerate(layerwise_singular_values):
         # Drop first row as all are ones due to orthogonal initialization, and transpose each so time is horizontal axis.
         singular_values = np.array(singular_values, dtype=float)[1:].T
