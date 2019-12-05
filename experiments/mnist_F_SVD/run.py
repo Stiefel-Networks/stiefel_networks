@@ -15,12 +15,11 @@ from tools.util import get_gpu
 OUT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'runs')
 
 
-def record_shared(progress, run_start, epoch, samples_trained, f_network):
+def record_shared(progress, run_start, epoch, samples_trained):
     progress.update({
         'seconds_elapsed': (datetime.datetime.now() - run_start).seconds,
         'sample_exposure': samples_trained,
         'epoch': epoch,
-        'singular_values': [values.tolist() for values in f_network.singular_value_sets()],
     })
 
 
@@ -32,8 +31,9 @@ def record_epoch(progress_array, run_start, epoch, samples_trained, f_network, t
         'train_accuracy': train_accuracy,
         'test_loss': test_loss,
         'test_accuracy': test_accuracy,
+        'singular_values': [values.tolist() for values in f_network.singular_value_sets()],
     }
-    record_shared(progress, run_start, epoch, samples_trained, f_network)
+    record_shared(progress, run_start, epoch, samples_trained)
     progress_array.append(progress)
 
     return train_loss, test_loss
@@ -50,13 +50,13 @@ def evaluate_test_train(f_network, use_gpu, test_mode=False):
 
 
 # args, run_start, epoch, batch, batch_inputs, batch_labels, predictions):
-def record_batch(progress_array, run_start, batches_completed, epoch, samples_trained, batch_accuracy, batch_loss, f_network):
+def record_batch(progress_array, run_start, batches_completed, epoch, samples_trained, batch_accuracy, batch_loss):
     progress = {
         'batches_completed': batches_completed,
         'batch_accuracy': batch_accuracy,
         'bach_loss': batch_loss,
     }
-    record_shared(progress, run_start, epoch, samples_trained, f_network)
+    record_shared(progress, run_start, epoch, samples_trained)
     progress_array.append(progress)
 
 
@@ -77,7 +77,7 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
             # Record batch data
             samples_trained += len(inputs)
             accuracy = get_accuracy(inputs, labels, predictions)
-            record_batch(batches_progress, run_start, batch, epoch, samples_trained, accuracy.item(), loss.item(), f_network)
+            record_batch(batches_progress, run_start, batch, epoch, samples_trained, accuracy.item(), loss.item())
 
             # Update progress bar
             previous_losses[batch % 10] = loss
