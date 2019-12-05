@@ -24,13 +24,7 @@ def record_shared(progress, run_start, epoch, samples_trained, f_network):
     })
 
 
-def record_epoch(progress_array, run_start, epoch, samples_trained, f_network, use_gpu, test_mode=False):
-    test_set = get_tiny_mnist_test(use_gpu=use_gpu, test_mode=test_mode)
-    train_set = get_tiny_mnist(batch_size=1000, use_gpu=use_gpu, test_mode=test_mode)
-
-    train_loss, train_accuracy = evaluate_model(f_network, train_set)
-    test_loss, test_accuracy = evaluate_model(f_network, test_set)
-
+def record_epoch(progress_array, run_start, epoch, samples_trained, f_network, test_accuracy, test_loss, train_accuracy, train_loss):
     print("Train: {:.1f}% @ L={:.3f}".format(train_accuracy, train_loss))
     print("Test:  {:.1f}% @ L={:.3f}".format(test_accuracy, test_loss))
     progress = {
@@ -41,6 +35,18 @@ def record_epoch(progress_array, run_start, epoch, samples_trained, f_network, u
     }
     record_shared(progress, run_start, epoch, samples_trained, f_network)
     progress_array.append(progress)
+
+    return train_loss, test_loss
+
+
+def evaluate_test_train(f_network, use_gpu, test_mode=False):
+    test_set = get_tiny_mnist_test(use_gpu=use_gpu, test_mode=test_mode)
+    train_set = get_tiny_mnist(batch_size=1000, use_gpu=use_gpu, test_mode=test_mode)
+
+    train_loss, train_accuracy = evaluate_model(f_network, train_set)
+    test_loss, test_accuracy = evaluate_model(f_network, test_set)
+
+    return test_accuracy, test_loss, train_accuracy, train_loss
 
 
 # args, run_start, epoch, batch, batch_inputs, batch_labels, predictions):
@@ -97,6 +103,7 @@ def perform_run(hyperparams, run_name, run_number):
         'layer_width': 32,
         'learning_rate': 0.001,
         'epochs': 10,
+        'train_loss_early_stop': 1e-6,
         'use_gpu': True,
         'test_mode': False,
     }
@@ -118,11 +125,56 @@ def perform_run(hyperparams, run_name, run_number):
     samples_trained = 0
     # Range and batch start at 1!
     epoch = 1
+    test_accuracy, test_loss, train_accuracy, train_loss = evaluate_test_train(
+        f_network,
+        args['use_gpu'],
+        args['test_mode']
+    )
     for epoch in range(1, args['epochs'] + 1):
-        record_epoch(epochs_progress, run_start, epoch, samples_trained, f_network, args['use_gpu'], test_mode=args['test_mode'])
-        samples_trained = run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, samples_trained, test_mode=args['test_mode'])
+        if train_loss <= args['train_loss_early_stop']:
+            print("Stopping run, train loss threshold {} exceeded:".format(args['train_loss_early_stop']))
+            break
 
-    record_epoch(epochs_progress, run_start, epoch, samples_trained, f_network, args['use_gpu'], test_mode=args['test_mode'])
+        record_epoch(
+            epochs_progress,
+            run_start,
+            epoch,
+            samples_trained,
+            f_network,
+            test_accuracy,
+            test_loss,
+            train_accuracy,
+            train_loss,
+        )
+
+        samples_trained = run_epoch(
+            args,
+            batches_progress,
+            epoch,
+            f_network,
+            optimizer,
+            run_start,
+            samples_trained,
+            test_mode=args['test_mode'],
+        )
+
+        test_accuracy, test_loss, train_accuracy, train_loss = evaluate_test_train(
+            f_network,
+            args['use_gpu'],
+            args['test_mode']
+        )
+
+    record_epoch(
+        epochs_progress,
+        run_start,
+        epoch,
+        samples_trained,
+        f_network,
+        test_accuracy,
+        test_loss,
+        train_accuracy,
+        train_loss,
+    )
     save_run_data(db, run_name, run_start)
     print("Run duration: {} sec".format((datetime.datetime.now() - run_start).seconds))
 
@@ -131,35 +183,38 @@ def main():
     epochs = 100
     num_runs = 5
     batch_size = 128
-    learning_rate = 0.001
+    learning_rate = 0.01
+    train_loss_early_stop = 0.01
 
-    for run_number in range(num_runs):
-        for parametrization in ['standard', 'svd']:
-            for width_exponent in range(1, 9):
-                layer_width = 2 ** width_exponent
-                # Run on CPU for width 2 to width 128, as it's faster
-                use_gpu = layer_width >= 128
-
-                perform_run({
-                    'parametrization': parametrization,
-                    'batch_size': batch_size,
-                    'layer_width': layer_width,
-                    'learning_rate': learning_rate,
-                    'epochs': epochs,
-                    'num_runs': num_runs,
-                    'use_gpu': use_gpu,
-                }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization), run_number)
+    # for run_number in range(num_runs):
+    #     for parametrization in ['standard', 'svd']:
+    #         for width_exponent in range(1, 9):
+    #             layer_width = 2 ** width_exponent
+    #             # Run on CPU for width 2 to width 128, as it's faster
+    #             use_gpu = layer_width >= 128
+    #
+    #             perform_run({
+    #                 'parametrization': parametrization,
+    #                 'batch_size': batch_size,
+    #                 'layer_width': layer_width,
+    #                 'learning_rate': learning_rate,
+    #                 'epochs': epochs,
+    #                 'train_loss_early_stop': train_loss_early_stop,
+    #                 'num_runs': num_runs,
+    #                 'use_gpu': use_gpu,
+    #             }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization), run_number)
 
     # Fast version for testing
-    # perform_run({
-    #     'parametrization': 'standard',
-    #     'batch_size': 100,
-    #     'layer_width': 32,
-    #     'learning_rate': 0.01,
-    #     'epochs': 5,
-    #     'use_gpu': False,
-    #     'test_mode': True,
-    # }, 'fast_test', 1)
+    perform_run({
+        'parametrization': 'standard',
+        'batch_size': 100,
+        'layer_width': 32,
+        'learning_rate': 0.01,
+        'epochs': 5,
+        'train_loss_early_stop': 0.001,
+        'use_gpu': False,
+        'test_mode': True,
+    }, 'fast_test', 1)
 
 
 if __name__ == "__main__":
