@@ -135,6 +135,54 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
     plt.clf()
     plt.close(fig)
 
+def plot_singular_value_histograms(run_data, num_snapshots, plot_directory=None):
+    epochs = run_data["epochs_progress"]
+    num_bins = 15
+
+    layerwise_singular_values = []
+    epoch_numbers = []
+    for snapshot in range(num_snapshots + 1):
+        # Progress fractions should start at 0.0 and end at 1.0 exactly.  (Which is possible with float representation.)
+        progress_fraction = snapshot / num_snapshots
+        epoch_number = int(progress_fraction * len(epochs))
+        epoch_number = min(epoch_number, len(epochs) - 1)
+        epoch_numbers.append(epoch_number)
+
+        epoch = epochs[epoch_number]
+        for layer, layer_singular_values in enumerate(epoch["singular_values"]):
+            if layer >= len(layerwise_singular_values):
+                layerwise_singular_values.append([])
+            layerwise_singular_values[layer].append(layer_singular_values)
+
+    # Each row is a layer, each column is a snapshot
+    fig, axes = plt.subplots(len(layerwise_singular_values), len(epoch_numbers), figsize=(12., 23.))
+
+    network_name = get_architecture(run_data)
+
+    plt.subplots_adjust(top=0.92, bottom=0.05)
+    fig.suptitle("Width {} {} - Singular Value Histograms".format(run_data["hyperparameters"]["layer_width"], network_name))
+    for layer, singular_value_snapshots in enumerate(layerwise_singular_values):
+        for snapshot_number, (epoch_number, snapshot) in enumerate(zip(epoch_numbers, singular_value_snapshots)):
+            # Drop first row as all are ones due to orthogonal initialization, and transpose each so time is horizontal axis.
+            singular_values = np.array(snapshot, dtype=float)
+
+            if np.min(singular_values) < 0.0 or np.max(singular_values) > 2.5:
+                print("WARNING!\n Singular value outside of histogram range (0.0, 2.5):")
+                print("  ({}, {})".format(np.min(singular_values), np.max(singular_values)))
+
+            _n, _bins, _patches = axes[layer, snapshot_number].hist(singular_values, num_bins, range=(0.0, 2.5))
+
+            axes[layer, snapshot_number].set_title("Layer {} Epoch {}".format(layer + 1, epoch_number))
+
+    if plot_directory is not None:
+        plt.savefig(os.path.join(plot_directory, "singular_value_histograms.pdf"))
+    else:
+        plt.show()
+
+    plt.cla()
+    plt.clf()
+    plt.close(fig)
+
 
 def main():
     run_files = [f for f in os.listdir(OUT_PATH) if os.path.isfile(os.path.join(OUT_PATH, f))]
@@ -160,6 +208,7 @@ def main():
             plot_epoch_test_train(run_data, 'loss', plot_directory)
             plot_epoch_test_train(run_data, 'accuracy', plot_directory)
             plot_epoch_stable_rank(run_data, plot_directory)
+            plot_singular_value_histograms(run_data, 4, plot_directory)
             plot_epoch_singular_value_heatmap(run_data, plot_directory)
 
 
