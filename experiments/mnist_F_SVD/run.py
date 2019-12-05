@@ -186,35 +186,34 @@ def main():
     learning_rate = 0.01
     train_loss_early_stop = 0.01
 
-    # for run_number in range(num_runs):
-    #     for parametrization in ['standard', 'svd']:
-    #         for width_exponent in range(1, 9):
-    #             layer_width = 2 ** width_exponent
-    #             # Run on CPU for width 2 to width 128, as it's faster
-    #             use_gpu = layer_width >= 128
-    #
-    #             perform_run({
-    #                 'parametrization': parametrization,
-    #                 'batch_size': batch_size,
-    #                 'layer_width': layer_width,
-    #                 'learning_rate': learning_rate,
-    #                 'epochs': epochs,
-    #                 'train_loss_early_stop': train_loss_early_stop,
-    #                 'num_runs': num_runs,
-    #                 'use_gpu': use_gpu,
-    #             }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization), run_number)
+    for run_number in range(num_runs):
+        for parametrization in ['standard', 'svd']:
+            for layer_width in [64, 128, 256]:
+                # Run on CPU up to width 128, as it's faster
+                use_gpu = layer_width >= 256
+
+                perform_run({
+                    'parametrization': parametrization,
+                    'batch_size': batch_size,
+                    'layer_width': layer_width,
+                    'learning_rate': learning_rate,
+                    'epochs': epochs,
+                    'train_loss_early_stop': train_loss_early_stop,
+                    'num_runs': num_runs,
+                    'use_gpu': use_gpu,
+                }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization), run_number)
 
     # Fast version for testing
-    perform_run({
-        'parametrization': 'standard',
-        'batch_size': 100,
-        'layer_width': 32,
-        'learning_rate': 0.01,
-        'epochs': 5,
-        'train_loss_early_stop': 0.001,
-        'use_gpu': False,
-        'test_mode': True,
-    }, 'fast_test', 1)
+    # perform_run({
+    #     'parametrization': 'standard',
+    #     'batch_size': 100,
+    #     'layer_width': 32,
+    #     'learning_rate': 0.01,
+    #     'epochs': 5,
+    #     'train_loss_early_stop': 0.001,
+    #     'use_gpu': False,
+    #     'test_mode': True,
+    # }, 'fast_test', 1)
 
 
 if __name__ == "__main__":
