@@ -9,25 +9,52 @@ from mnist_F_SVD.run import OUT_PATH
 from tools.measurement import stable_rank
 
 
-def plot_epoch_test_train_loss(run_data, plot_directory=None):
+def get_architecture(run_data):
+    if run_data["hyperparameters"]["parametrization"] == "svd":
+        network_name = "F_SVD"
+    elif run_data["hyperparameters"]["parametrization"] == "standard":
+        network_name = "F_1"
+    else:
+        raise Exception("Unknown network parametrization {}".format(run_data["hyperparameters"]["parametrization"]))
+    return network_name
+
+
+def plot_epoch_test_train(run_data, metric, plot_directory=None):
+    """
+    metric is either 'loss' or 'accuracy'
+    """
     epochs = run_data["epochs_progress"]
     x = list(range(len(epochs)))
-    test_loss = [epoch["test_loss"] for epoch in epochs]
-    train_loss = [epoch["train_loss"] for epoch in epochs]
+    test_perf = [epoch["test_{}".format(metric)] for epoch in epochs]
+    train_perf = [epoch["train_{}".format(metric)] for epoch in epochs]
 
-    plt.plot(x, test_loss, label="Test Loss")
-    plt.plot(x, train_loss, label="Train Loss")
+    fig = plt.figure(figsize=(6.4, 4.8))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.plot(x, test_perf, label="Test {}".format(metric.capitalize()))
+    ax.plot(x, train_perf, label="Train {}".format(metric.capitalize()))
 
-    plt.title("Width {} F_SVD\nLoss vs. Epoch".format(run_data["hyperparameters"]["layer_width"]))
-    plt.legend()
+    if metric == 'loss':
+        ax.plot(x, [0.01 for _ in x], label="0.01", linestyle='dashed')
+    else:
+        ax.plot(x, [100 for _ in x], label="100%", linestyle='dashed')
+
+    network_name = get_architecture(run_data)
+
+    ax.set_title("Width {} {}\n{} vs. Epoch".format(
+        run_data["hyperparameters"]["layer_width"],
+        network_name,
+        metric.capitalize(),
+    ))
+    ax.legend()
 
     if plot_directory is not None:
-        plt.savefig(os.path.join(plot_directory, "test_train_loss.pdf"))
+        plt.savefig(os.path.join(plot_directory, "test_train_{}.pdf".format(metric)))
     else:
         plt.show()
 
     plt.cla()
     plt.clf()
+    plt.close(fig)
 
 
 def plot_epoch_stable_rank(run_data, plot_directory=None):
@@ -42,11 +69,15 @@ def plot_epoch_stable_rank(run_data, plot_directory=None):
                 layerwise_stable_ranks.append([])
             layerwise_stable_ranks[layer].append(stable_rank(layer_singular_values))
 
+    fig = plt.figure(figsize=(6.4, 4.8))
+    ax = fig.add_subplot(1, 1, 1)
     for layer, layer_stable_ranks in enumerate(layerwise_stable_ranks, 1):
-        plt.plot(x, layer_stable_ranks, label="Layer {}".format(layer))
+        ax.plot(x, layer_stable_ranks, label="Layer {}".format(layer))
 
-    plt.title("Width {} F_SVD\nStable Rank vs. Epoch".format(run_data["hyperparameters"]["layer_width"]))
-    plt.legend()
+    network_name = get_architecture(run_data)
+
+    ax.set_title("Width {} {}\nStable Rank vs. Epoch".format(run_data["hyperparameters"]["layer_width"], network_name))
+    ax.legend()
 
     if plot_directory is not None:
         plt.savefig(os.path.join(plot_directory, "stable_rank.pdf"))
@@ -55,6 +86,7 @@ def plot_epoch_stable_rank(run_data, plot_directory=None):
 
     plt.cla()
     plt.clf()
+    plt.close(fig)
 
 
 def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
@@ -70,8 +102,11 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
 
     # We deal with lists because singular value arrays are not all the same size.
     fig, axes = plt.subplots(len(layerwise_singular_values), 1, figsize=(6.4, 10.))
+
+    network_name = get_architecture(run_data)
+
     plt.subplots_adjust(top=0.92, bottom=0.05)
-    fig.suptitle("Width {} F_SVD - Singular Value Density vs. Epoch".format(run_data["hyperparameters"]["layer_width"]))
+    fig.suptitle("Width {} {} - Singular Value Density vs. Epoch".format(run_data["hyperparameters"]["layer_width"], network_name))
     for layer, singular_values in enumerate(layerwise_singular_values):
         # Drop first row as all are ones due to orthogonal initialization, and transpose each so time is horizontal axis.
         singular_values = np.array(singular_values, dtype=float)[1:].T
@@ -88,7 +123,7 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
         axes[layer].set_yticks(y_label_pixel_positions[::-1])
         axes[layer].set_yticklabels(y_labels[::-1])
 
-        axes[layer].set_title("Layer {}".format(layer))
+        axes[layer].set_title("Layer {}".format(layer + 1))
         axes[layer].imshow(histogram_evolution, aspect='auto')
 
     if plot_directory is not None:
@@ -98,6 +133,7 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
 
     plt.cla()
     plt.clf()
+    plt.close(fig)
 
 
 def main():
@@ -121,7 +157,8 @@ def main():
 
             # Uncomment to watch the plots roll in.
             # plot_directory = None
-            plot_epoch_test_train_loss(run_data, plot_directory)
+            plot_epoch_test_train(run_data, 'loss', plot_directory)
+            plot_epoch_test_train(run_data, 'accuracy', plot_directory)
             plot_epoch_stable_rank(run_data, plot_directory)
             plot_epoch_singular_value_heatmap(run_data, plot_directory)
 
