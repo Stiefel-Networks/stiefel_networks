@@ -9,15 +9,9 @@ from mnist_F_SVD.run import OUT_PATH
 from tools.measurement import stable_rank
 
 
-SMALL_FIGSIZE = 3., 2.
-TALL_FIGSIZE = 3., 8.
-
-
 def plot_epoch_test_train_loss(run_data, plot_directory=None):
-    plt.rcParams['figure.figsize'] = SMALL_FIGSIZE
-
     epochs = run_data["epochs_progress"]
-    x = [epoch["sample_exposure"] for epoch in epochs]
+    x = list(range(len(epochs)))
     test_loss = [epoch["test_loss"] for epoch in epochs]
     train_loss = [epoch["train_loss"] for epoch in epochs]
 
@@ -31,13 +25,14 @@ def plot_epoch_test_train_loss(run_data, plot_directory=None):
     else:
         plt.show()
 
+    plt.cla()
+    plt.clf()
+
 
 def plot_epoch_stable_rank(run_data, plot_directory=None):
-    plt.rcParams['figure.figsize'] = SMALL_FIGSIZE
-
     epochs = run_data["epochs_progress"]
 
-    x = [epoch["sample_exposure"] for epoch in epochs]
+    x = list(range(len(epochs)))
 
     layerwise_stable_ranks = []
     for epoch in epochs:
@@ -57,10 +52,11 @@ def plot_epoch_stable_rank(run_data, plot_directory=None):
     else:
         plt.show()
 
+    plt.cla()
+    plt.clf()
+
 
 def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
-    plt.rcParams['figure.figsize'] = TALL_FIGSIZE
-
     epochs = run_data["epochs_progress"]
     num_bins = 50
 
@@ -72,8 +68,8 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
             layerwise_singular_values[layer].append(layer_singular_values)
 
     # We deal with lists because singular value arrays are not all the same size.
-    fig, axes = plt.subplots(len(layerwise_singular_values), 1, constrained_layout=True)
-    fig.suptitle("Width {} F_SVD\nSingular Value Density vs. Epoch".format(run_data["hyperparameters"]["layer_width"]))
+    fig, axes = plt.subplots(len(layerwise_singular_values), 1, constrained_layout=True, figsize=(6.4, 10.))
+    fig.suptitle("Width {} F_SVD - Singular Value Density vs. Epoch".format(run_data["hyperparameters"]["layer_width"]), y=1.0)
     for layer, singular_values in enumerate(layerwise_singular_values):
         # Drop first row as all are ones due to orthogonal initialization, and transpose each so time is horizontal axis.
         singular_values = np.array(singular_values, dtype=float)[1:].T
@@ -81,25 +77,28 @@ def plot_epoch_singular_value_heatmap(run_data, plot_directory=None):
         max_val = singular_values.max()
         histogram_evolution = np.apply_along_axis(lambda slice: np.histogram(slice, bins=num_bins, range=(min_val, max_val))[0], 0, singular_values)
 
+        # Construct y axis labels according to min and max singular value.
         num_y_labels = 5
         y_label_pixel_gap = int(num_bins / (num_y_labels - 1))
         y_label_pixel_positions = np.arange(0, num_bins, y_label_pixel_gap)
         y_labels = ["{:.2f}".format(label_value) for label_value in np.linspace(min_val, max_val, num_y_labels)]
-        axes[layer].set_yticks(y_label_pixel_positions)
-        axes[layer].set_yticklabels(y_labels)
+        # Ensuring higher values are above lower ones - requires reversal due to imshow.
+        axes[layer].set_yticks(y_label_pixel_positions[::-1])
+        axes[layer].set_yticklabels(y_labels[::-1])
 
         axes[layer].set_title("Layer {}".format(layer))
-        axes[layer].imshow(histogram_evolution)
+        axes[layer].imshow(histogram_evolution, aspect='auto')
 
     if plot_directory is not None:
         plt.savefig(os.path.join(plot_directory, "singular_value_heatmap.pdf"))
     else:
         plt.show()
 
+    plt.cla()
+    plt.clf()
+
 
 def main():
-    plt.rcParams['figure.dpi'] = 200
-
     run_files = [f for f in os.listdir(OUT_PATH) if os.path.isfile(os.path.join(OUT_PATH, f))]
     run_files.sort()
     for run_filname in run_files:
@@ -114,10 +113,11 @@ def main():
             print("Loaded:\n  {}".format(run_data["hyperparameters"]))
 
             run_subdirectory = os.path.splitext(os.path.basename(run_filname))[0]
-            plot_directory = os.path.join(OUT_PATH, run_subdirectory, "plots")
+            plot_directory = os.path.join(OUT_PATH, run_subdirectory)
 
             os.makedirs(plot_directory, exist_ok=True)
 
+            # Uncomment to watch the plots roll in.
             # plot_directory = None
             plot_epoch_test_train_loss(run_data, plot_directory)
             plot_epoch_stable_rank(run_data, plot_directory)
