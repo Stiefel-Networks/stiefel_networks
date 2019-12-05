@@ -19,11 +19,11 @@ def get_downsampler():
     ])
 
 
-def get_tiny_mnist_test(use_gpu=True):
+def get_tiny_mnist_test(use_gpu=True, test_mode=False):
     """
     Returns the standard test MNIST set, unshuffled with large batches, optionally gpu-ready.
     """
-    test_dataset = _get_mnist(training=False)
+    test_dataset = _get_mnist(training=False, test_mode=test_mode)
     data_loader = torch.utils.data.DataLoader(
         test_dataset,
         1000,
@@ -36,16 +36,16 @@ def get_tiny_mnist_test(use_gpu=True):
         return data_loader
 
 
-def get_tiny_mnist(batch_size=32, use_gpu=True):
+def get_tiny_mnist(batch_size=32, use_gpu=True, test_mode=False):
     """
     Returns the training MNIST set shuffled, batched, and optionally gpu-ready.
     """
-    train_dataset = _get_mnist(training=True)
+    train_dataset = _get_mnist(training=True, test_mode=test_mode)
     data_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size,
         num_workers=16,
-        shuffle=True
+        shuffle=True,
     )
 
     if use_gpu:
@@ -54,14 +54,17 @@ def get_tiny_mnist(batch_size=32, use_gpu=True):
         return data_loader
 
 
-def _get_mnist(training=True):
-    train_dataset = torchvision.datasets.MNIST(
+def _get_mnist(training=True, test_mode=False):
+    dataset = torchvision.datasets.MNIST(
         root=DATA_DIR,
         download=True,
         train=training,
         transform=get_downsampler(),
     )
-    return train_dataset
+    if test_mode:
+        subset = list(range(1000))
+        dataset = torch.utils.data.Subset(dataset, subset)
+    return dataset
 
 
 # GPU loading code from
