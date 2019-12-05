@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 
 import torch
@@ -7,56 +6,13 @@ from tqdm import tqdm
 
 # TODO rename module to 5_1_replication
 from mnist_F_SVD.f_network import FNetwork
-from tools.data import get_tiny_mnist, get_tiny_mnist_test
-from tools.measurement import get_loss, get_accuracy, evaluate_model
+from tools.data import get_tiny_mnist
+from tools.measurement import get_loss, get_accuracy, evaluate_test_train
+from tools.recording import record_epoch, record_batch, save_run_data
 from tools.util import get_gpu
 
 
 OUT_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'runs')
-
-
-def record_shared(progress, run_start, epoch, samples_trained):
-    progress.update({
-        'seconds_elapsed': (datetime.datetime.now() - run_start).seconds,
-        'sample_exposure': samples_trained,
-        'epoch': epoch,
-    })
-
-
-def record_epoch(progress_array, run_start, epoch, samples_trained, f_network, test_accuracy, test_loss, train_accuracy, train_loss):
-    print("Train: {:.1f}% @ L={:.3f}".format(train_accuracy, train_loss))
-    print("Test:  {:.1f}% @ L={:.3f}".format(test_accuracy, test_loss))
-    progress = {
-        'train_loss': train_loss,
-        'train_accuracy': train_accuracy,
-        'test_loss': test_loss,
-        'test_accuracy': test_accuracy,
-        'singular_values': [values.tolist() for values in f_network.singular_value_sets()],
-    }
-    record_shared(progress, run_start, epoch, samples_trained)
-    progress_array.append(progress)
-
-    return train_loss, test_loss
-
-
-def evaluate_test_train(f_network, use_gpu, test_mode=False):
-    test_set = get_tiny_mnist_test(use_gpu=use_gpu, test_mode=test_mode)
-    train_set = get_tiny_mnist(batch_size=1000, use_gpu=use_gpu, test_mode=test_mode)
-
-    train_loss, train_accuracy = evaluate_model(f_network, train_set)
-    test_loss, test_accuracy = evaluate_model(f_network, test_set)
-
-    return test_accuracy, test_loss, train_accuracy, train_loss
-
-
-def record_batch(progress_array, run_start, batches_completed, epoch, samples_trained, batch_accuracy, batch_loss):
-    progress = {
-        'batches_completed': batches_completed,
-        'batch_accuracy': batch_accuracy,
-        'bach_loss': batch_loss,
-    }
-    record_shared(progress, run_start, epoch, samples_trained)
-    progress_array.append(progress)
 
 
 def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, samples_trained, test_mode=False):
@@ -70,6 +26,16 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
 
             predictions = f_network(inputs.reshape(-1, 100))
             loss = get_loss(labels, predictions)
+
+            if 'l2_sigma_weight' in args:
+                weight = args['l2_sigma_weight']
+                singular_values_sets = f_network.singular_value_sets()
+                regularization_term = 0
+                for singular_values_set in singular_values_sets:
+                    regularization_term += torch.norm(singular_values_set) * weight# / torch.sqrt(singular_values_set.numel())
+
+                loss = loss + regularization_term
+
             loss.backward()
             optimizer.step()
 
@@ -85,14 +51,6 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
             t.update()
 
     return samples_trained
-
-
-def save_run_data(db, run_name, run_start, run_number):
-    os.makedirs(OUT_PATH, exist_ok=True)
-    run_timestamp = run_start.isoformat()
-    out_filename = "{} - {} - run {}.json".format(run_timestamp, run_name, run_number)
-    with open(os.path.join(OUT_PATH, out_filename), 'w') as file:
-        file.write(json.dumps(db, indent=2))
 
 
 def perform_run(hyperparams, run_name):
@@ -176,11 +134,11 @@ def perform_run(hyperparams, run_name):
         train_accuracy,
         train_loss,
     )
-    save_run_data(db, run_name, run_start, run_number)
+    save_run_data(db, OUT_PATH, run_name, run_start, run_number)
     print("Run duration: {} sec".format((datetime.datetime.now() - run_start).seconds))
 
 
-def main():
+def run_experiment_5_1():
     epochs = 100
     batch_size = 128
     learning_rate = 0.01
@@ -203,19 +161,47 @@ def main():
                     'use_gpu': use_gpu,
                 }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization))
 
+
+def run_experiment_5_2():
+    epochs = 100
+    batch_size = 128
+    train_loss_early_stop = 0.01
+    parametrization = 'svd'
+
+    learning_rate = 0.01
+    layer_width = 128
+
+    for run_number in [0, 1]:
+        for l2_sigma_weight in [0.001, 0.01, 0.1]:
+            # Run on CPU up to width 128, as it's faster
+            use_gpu = layer_width >= 256
+
+            perform_run({
+                'parametrization': parametrization,
+                'batch_size': batch_size,
+                'layer_width': layer_width,
+                'learning_rate': learning_rate,
+                'l2_sigma_weight': l2_sigma_weight,
+                'epochs': epochs,
+                'train_loss_early_stop': train_loss_early_stop,
+                'run_number': run_number,
+                'use_gpu': use_gpu,
+            }, 'h={} b={} lr={} e={} l2={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, l2_sigma_weight, parametrization))
+
+def run_test_experiment():
     # Fast version for testing
-    # perform_run({
-    #     'parametrization': 'standard',
-    #     'batch_size': 100,
-    #     'layer_width': 32,
-    #     'learning_rate': 0.01,
-    #     'epochs': 5,
-    #     'train_loss_early_stop': 0.001,
-    #     'run_number': 1,
-    #     'use_gpu': False,
-    #     'test_mode': True,
-    # }, 'fast_test')
+    perform_run({
+        'parametrization': 'standard',
+        'batch_size': 100,
+        'layer_width': 32,
+        'learning_rate': 0.01,
+        'epochs': 5,
+        'train_loss_early_stop': 0.001,
+        'run_number': 1,
+        'use_gpu': False,
+        'test_mode': True,
+    }, 'fast_test')
 
 
 if __name__ == "__main__":
-    main()
+    run_experiment_5_2()

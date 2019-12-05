@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from torch.nn import functional as F
 
+from tools.data import get_tiny_mnist_test, get_tiny_mnist
+
 
 def get_loss(labels, predictions):
     return F.cross_entropy(predictions, labels)
@@ -35,3 +37,13 @@ def stable_rank(layer_singular_values):
     frobenius = np.sum(layer_singular_values ** 2)
     spectral = np.max(layer_singular_values) ** 2
     return frobenius / spectral
+
+
+def evaluate_test_train(f_network, use_gpu, test_mode=False):
+    test_set = get_tiny_mnist_test(use_gpu=use_gpu, test_mode=test_mode)
+    train_set = get_tiny_mnist(batch_size=1000, use_gpu=use_gpu, test_mode=test_mode)
+
+    train_loss, train_accuracy = evaluate_model(f_network, train_set)
+    test_loss, test_accuracy = evaluate_model(f_network, test_set)
+
+    return test_accuracy, test_loss, train_accuracy, train_loss
