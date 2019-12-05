@@ -82,117 +82,85 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
     return samples_trained
 
 
-def save_run_data(db, run_name, run_number, run_start):
+def save_run_data(db, run_name, run_start):
     os.makedirs(OUT_PATH, exist_ok=True)
     run_timestamp = run_start.isoformat()
-    out_filename = "{} - {} -  run {}.json".format(run_timestamp, run_name, run_number)
+    out_filename = "{} - {}.json".format(run_timestamp, run_name)
     with open(os.path.join(OUT_PATH, out_filename), 'w') as file:
         file.write(json.dumps(db, indent=2))
 
 
-def main(hyperparams, run_name):
+def perform_run(hyperparams, run_name, run_number):
     args = {
         'parametrization': 'svd',
-        'batch_size': 64,
+        'batch_size': 128,
         'layer_width': 32,
         'learning_rate': 0.001,
         'epochs': 10,
-        'num_runs': 5,
         'use_gpu': True,
         'test_mode': False,
     }
     args.update(hyperparams)
 
-    for run_number in range(args['num_runs']):
-        print("Starting run {} of {}".format(run_number, run_name))
-        run_start = datetime.datetime.now()
+    print("Starting run {} of {}".format(run_number, run_name))
+    run_start = datetime.datetime.now()
 
-        epochs_progress = []
-        batches_progress = []
-        db = {'hyperparameters': args, 'epochs_progress': epochs_progress, 'batches_progress': batches_progress}
+    epochs_progress = []
+    batches_progress = []
+    db = {'hyperparameters': args, 'epochs_progress': epochs_progress, 'batches_progress': batches_progress}
 
-        f_network = FNetwork(100, 10, layer_count=4, layer_width=args['layer_width'], parametrization=args['parametrization'])
-        if args['use_gpu']:
-            f_network = f_network.to(device=get_gpu())
+    f_network = FNetwork(100, 10, layer_count=4, layer_width=args['layer_width'], parametrization=args['parametrization'])
+    if args['use_gpu']:
+        f_network = f_network.to(device=get_gpu())
 
-        optimizer = torch.optim.SGD(f_network.parameters(), lr=args['learning_rate'], momentum=0.9)
+    optimizer = torch.optim.SGD(f_network.parameters(), lr=args['learning_rate'], momentum=0.9)
 
-        samples_trained = 0
-        # Range and batch start at 1!
-        epoch = 1
-        for epoch in range(1, args['epochs'] + 1):
-            record_epoch(epochs_progress, run_start, epoch, samples_trained, f_network, args['use_gpu'], test_mode=args['test_mode'])
-            samples_trained = run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, samples_trained, test_mode=args['test_mode'])
-
+    samples_trained = 0
+    # Range and batch start at 1!
+    epoch = 1
+    for epoch in range(1, args['epochs'] + 1):
         record_epoch(epochs_progress, run_start, epoch, samples_trained, f_network, args['use_gpu'], test_mode=args['test_mode'])
-        save_run_data(db, run_name, run_number, run_start)
-        print("Run duration: {} sec".format((datetime.datetime.now() - run_start).seconds))
+        samples_trained = run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, samples_trained, test_mode=args['test_mode'])
+
+    record_epoch(epochs_progress, run_start, epoch, samples_trained, f_network, args['use_gpu'], test_mode=args['test_mode'])
+    save_run_data(db, run_name, run_start)
+    print("Run duration: {} sec".format((datetime.datetime.now() - run_start).seconds))
 
 
-if __name__ == "__main__":
+def main():
+    epochs = 100
+    num_runs = 5
+    batch_size = 128
+    learning_rate = 0.001
 
-    parametrization = 'standard'
+    for run_number in range(num_runs):
+        for parametrization in ['standard', 'svd']:
+            for width_exponent in range(1, 9):
+                layer_width = 2 ** width_exponent
+                # Run on CPU for width 2 to width 128, as it's faster
+                use_gpu = layer_width >= 128
+
+                perform_run({
+                    'parametrization': parametrization,
+                    'batch_size': batch_size,
+                    'layer_width': layer_width,
+                    'learning_rate': learning_rate,
+                    'epochs': epochs,
+                    'num_runs': num_runs,
+                    'use_gpu': use_gpu,
+                }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization), run_number)
 
     # Fast version for testing
-    # main({
-    #     'parametrization': parametrization,
+    # perform_run({
+    #     'parametrization': 'standard',
     #     'batch_size': 100,
     #     'layer_width': 32,
     #     'learning_rate': 0.01,
     #     'epochs': 5,
-    #     'num_runs': 2,
     #     'use_gpu': False,
     #     'test_mode': True,
-    # }, 'fast_test')
+    # }, 'fast_test', 1)
 
-    # Run on CPU for width 4 to width 128, as it's faster
-    # for width_exponent in range(2, 8):
-    #     layer_width = 2 ** width_exponent
-    #     epochs = 100
-    #     main({
-    #         'parametrization': 'svd',
-    #         'batch_size': 64,
-    #         'layer_width': layer_width,
-    #         'learning_rate': 0.001,
-    #         'epochs': epochs,
-    #         'num_runs': 2,
-    #         'use_gpu': False,
-    #     }, 'h={} b=64 lr=0.001 e={} [{}]'.format(layer_width, epochs, parametrization))
 
-    # # Change to GPU for width 256
-    # layer_width = 2 ** 8
-    # epochs = 100
-    # main({
-    #     'parametrization': 'svd',
-    #     'batch_size': 64,
-    #     'layer_width': layer_width,
-    #     'learning_rate': 0.001,
-    #     'epochs': epochs,
-    #     'num_runs': 2,
-    #     'use_gpu': True,
-    # }, 'h={} b=64 lr=0.001 e={}0 [{}]'.format(layer_width, epochs, parametrization))
-    #
-    # # Start cranking down number of epochs, as runtimes start to get hairy.
-    layer_width = 2 ** 9
-    epochs = 50
-    main({
-        'parametrization': 'svd',
-        'batch_size': 64,
-        'layer_width': layer_width,
-        'learning_rate': 0.001,
-        'epochs': epochs,
-        'num_runs': 2,
-        'use_gpu': True,
-    }, 'h={} b=64 lr=0.001 e={} [{}]'.format(layer_width, epochs, parametrization))
-    #
-    # layer_width = 2 ** 10
-    # epochs = 25
-    # main({
-    #     'parametrization': 'svd',
-    #     'batch_size': 64,
-    #     'layer_width': layer_width,
-    #     'learning_rate': 0.001,
-    #     'epochs': epochs,
-    #     'num_runs': 2,
-    #     'use_gpu': True,
-    # }, 'h={} b=64 lr=0.001 e={} [{}]'.format(layer_width, epochs, parametrization))
+if __name__ == "__main__":
+    main()
