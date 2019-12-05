@@ -168,7 +168,7 @@ def plot_singular_value_histograms(run_data, num_snapshots, plot_directory=None)
 
             if np.min(singular_values) < 0.0 or np.max(singular_values) > 2.5:
                 print("WARNING!\n Singular value outside of histogram range (0.0, 2.5):")
-                print("  ({}, {})".format(np.min(singular_values), np.max(singular_values)))
+                print("Layer {} min, max:  ({}, {})".format(layer, np.min(singular_values), np.max(singular_values)))
 
             _n, _bins, _patches = axes[layer, snapshot_number].hist(singular_values, num_bins, range=(0.0, 2.5))
 

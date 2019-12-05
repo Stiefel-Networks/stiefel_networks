@@ -49,7 +49,6 @@ def evaluate_test_train(f_network, use_gpu, test_mode=False):
     return test_accuracy, test_loss, train_accuracy, train_loss
 
 
-# args, run_start, epoch, batch, batch_inputs, batch_labels, predictions):
 def record_batch(progress_array, run_start, batches_completed, epoch, samples_trained, batch_accuracy, batch_loss):
     progress = {
         'batches_completed': batches_completed,
@@ -88,15 +87,15 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
     return samples_trained
 
 
-def save_run_data(db, run_name, run_start):
+def save_run_data(db, run_name, run_start, run_number):
     os.makedirs(OUT_PATH, exist_ok=True)
     run_timestamp = run_start.isoformat()
-    out_filename = "{} - {}.json".format(run_timestamp, run_name)
+    out_filename = "{} - {} - run {}.json".format(run_timestamp, run_name, run_number)
     with open(os.path.join(OUT_PATH, out_filename), 'w') as file:
         file.write(json.dumps(db, indent=2))
 
 
-def perform_run(hyperparams, run_name, run_number):
+def perform_run(hyperparams, run_name):
     args = {
         'parametrization': 'svd',
         'batch_size': 128,
@@ -104,11 +103,13 @@ def perform_run(hyperparams, run_name, run_number):
         'learning_rate': 0.001,
         'epochs': 10,
         'train_loss_early_stop': 1e-6,
+        'run_number': 0,
         'use_gpu': True,
         'test_mode': False,
     }
     args.update(hyperparams)
 
+    run_number = args['run_number']
     print("Starting run {} of {}".format(run_number, run_name))
     run_start = datetime.datetime.now()
 
@@ -175,18 +176,17 @@ def perform_run(hyperparams, run_name, run_number):
         train_accuracy,
         train_loss,
     )
-    save_run_data(db, run_name, run_start)
+    save_run_data(db, run_name, run_start, run_number)
     print("Run duration: {} sec".format((datetime.datetime.now() - run_start).seconds))
 
 
 def main():
     epochs = 100
-    num_runs = 5
     batch_size = 128
     learning_rate = 0.01
     train_loss_early_stop = 0.01
 
-    for run_number in range(num_runs):
+    for run_number in [1, 2]:
         for parametrization in ['standard', 'svd']:
             for layer_width in [64, 128, 256]:
                 # Run on CPU up to width 128, as it's faster
@@ -199,9 +199,9 @@ def main():
                     'learning_rate': learning_rate,
                     'epochs': epochs,
                     'train_loss_early_stop': train_loss_early_stop,
-                    'num_runs': num_runs,
+                    'run_number': run_number,
                     'use_gpu': use_gpu,
-                }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization), run_number)
+                }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization))
 
     # Fast version for testing
     # perform_run({
@@ -211,9 +211,10 @@ def main():
     #     'learning_rate': 0.01,
     #     'epochs': 5,
     #     'train_loss_early_stop': 0.001,
+    #     'run_number': 1,
     #     'use_gpu': False,
     #     'test_mode': True,
-    # }, 'fast_test', 1)
+    # }, 'fast_test')
 
 
 if __name__ == "__main__":
