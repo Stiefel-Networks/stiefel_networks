@@ -58,3 +58,13 @@ class FNetwork(nn.Module):
                 singular_value_sets.append(S)
 
             return singular_value_sets
+
+    def weight_sets(self):
+        if self.parametrization == "svd":
+            raise Exception("Not implemented yet.")
+        else:
+            weight_sets = []
+            for linearity in self.linearities:
+                weight_sets.append(linearity.weight)
+
+            return weight_sets
