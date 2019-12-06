@@ -40,6 +40,7 @@ def plot_epoch_test_train(run_data, metric, plot_directory=None):
 
     network_name = get_architecture(run_data)
 
+    ax.set_ylim((0., 0.3))
     ax.set_title("Width {} {}\n{} vs. Epoch".format(
         run_data["hyperparameters"]["layer_width"],
         network_name,

@@ -93,7 +93,10 @@ def perform_run(hyperparams, run_name):
     if args['use_gpu']:
         f_network = f_network.to(device=get_gpu())
 
-    optimizer = torch.optim.SGD(f_network.parameters(), lr=args['learning_rate'], momentum=0.9)
+    if 'l2_weight' in args:
+        optimizer = torch.optim.SGD(f_network.parameters(), lr=args['learning_rate'], momentum=0.9, weight_decay=args['l2_weight'])
+    else:
+        optimizer = torch.optim.SGD(f_network.parameters(), lr=args['learning_rate'], momentum=0.9)
 
     samples_trained = 0
     # Range and batch start at 1!
@@ -158,7 +161,7 @@ def run_experiment_5_1():
     learning_rate = 0.01
     train_loss_early_stop = 0.01
 
-    for run_number in [1, 2]:
+    for run_number in [0, 1, 2]:
         for parametrization in ['standard', 'svd']:
             for layer_width in [64, 128, 256]:
                 # Run on CPU up to width 128, as it's faster
@@ -177,56 +180,98 @@ def run_experiment_5_1():
 
 
 def run_experiment_5_2():
-    epochs = 20
+    epochs = 100
     batch_size = 128
-    train_loss_early_stop = 0.01
-    parametrization = 'svd'
+    train_loss_early_stop = 0.00001
 
+    layer_width = 64
     learning_rate = 0.01
-    layer_width = 128
+    regularization_weight = 0.0001
 
     for run_number in [0, 1]:
-        for regularization_weight in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
-            # Run on CPU up to width 128, as it's faster
-            use_gpu = layer_width >= 256
+        # Run on CPU up to width 128, as it's faster
+        use_gpu = layer_width >= 256
 
-            perform_run({
-                'parametrization': parametrization,
-                'batch_size': batch_size,
-                'layer_width': layer_width,
-                'learning_rate': learning_rate,
-                'stable_rank_weight': regularization_weight,
-                'epochs': epochs,
-                'train_loss_early_stop': train_loss_early_stop,
-                'run_number': run_number,
-                'use_gpu': use_gpu,
-            }, 'h={} b={} lr={} e={} l_SR={} [{} 5.2]'.format(
-                layer_width,
-                batch_size,
-                learning_rate,
-                epochs,
-                regularization_weight,
-                parametrization
-            ))
+        # Standard parametrization, unregularized
+        perform_run({
+            'parametrization': 'standard',
+            'batch_size': batch_size,
+            'layer_width': layer_width,
+            'learning_rate': learning_rate,
+            'epochs': epochs,
+            'train_loss_early_stop': train_loss_early_stop,
+            'run_number': run_number,
+            'use_gpu': use_gpu,
+            'test_mode': True,
+        }, 'h={} b={} lr={} e={} [{} 5.2]'.format(
+            layer_width,
+            batch_size,
+            learning_rate,
+            epochs,
+            'standard'
+        ))
 
-            perform_run({
-                'parametrization': parametrization,
-                'batch_size': batch_size,
-                'layer_width': layer_width,
-                'learning_rate': learning_rate,
-                'l2_sigma_weight': regularization_weight,
-                'epochs': epochs,
-                'train_loss_early_stop': train_loss_early_stop,
-                'run_number': run_number,
-                'use_gpu': use_gpu,
-            }, 'h={} b={} lr={} e={} l2_SQ={} [{} 5.2]'.format(
-                layer_width,
-                batch_size,
-                learning_rate,
-                epochs,
-                regularization_weight,
-                parametrization
-            ))
+        # Standard parametrization, L2 reg
+        perform_run({
+            'parametrization': 'standard',
+            'batch_size': batch_size,
+            'layer_width': layer_width,
+            'learning_rate': learning_rate,
+            'l2_weight': regularization_weight,
+            'epochs': epochs,
+            'train_loss_early_stop': train_loss_early_stop,
+            'run_number': run_number,
+            'use_gpu': use_gpu,
+            'test_mode': True,
+        }, 'h={} b={} lr={} e={} L2={} [{} 5.2]'.format(
+            layer_width,
+            batch_size,
+            learning_rate,
+            epochs,
+            regularization_weight,
+            'standard'
+        ))
+
+        # SVD parametrization, unregularized
+        perform_run({
+            'parametrization': 'svd',
+            'batch_size': batch_size,
+            'layer_width': layer_width,
+            'learning_rate': learning_rate,
+            'epochs': epochs,
+            'train_loss_early_stop': train_loss_early_stop,
+            'run_number': run_number,
+            'use_gpu': use_gpu,
+            'test_mode': True,
+        }, 'h={} b={} lr={} e={} [{} 5.2]'.format(
+            layer_width,
+            batch_size,
+            learning_rate,
+            epochs,
+            'svd'
+        ))
+
+        # SVD parametrization, L2 reg
+        perform_run({
+            'parametrization': 'svd',
+            'batch_size': batch_size,
+            'layer_width': layer_width,
+            'learning_rate': learning_rate,
+            'l2_sigma_weight': regularization_weight,
+            'epochs': epochs,
+            'train_loss_early_stop': train_loss_early_stop,
+            'run_number': run_number,
+            'use_gpu': use_gpu,
+            'test_mode': True,
+        }, 'h={} b={} lr={} e={} l_2sigma={} [{} 5.2]'.format(
+            layer_width,
+            batch_size,
+            learning_rate,
+            epochs,
+            regularization_weight,
+            'svd'
+        ))
+
 
 def run_test_experiment():
     # Fast version for testing
