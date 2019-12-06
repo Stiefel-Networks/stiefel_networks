@@ -179,7 +179,7 @@ def run_experiment_5_1():
                 }, 'h={} b={} lr={} e={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, parametrization))
 
 
-def run_experiment_5_2():
+def kirby_5_2():
     epochs = 100
     batch_size = 128
     train_loss_early_stop = 0.00001
@@ -188,7 +188,7 @@ def run_experiment_5_2():
     learning_rate = 0.01
     regularization_weight = 0.0001
 
-    for run_number in [0, 1]:
+    for run_number in range(100):
         # Run on CPU up to width 128, as it's faster
         use_gpu = layer_width >= 256
 
@@ -202,33 +202,11 @@ def run_experiment_5_2():
             'train_loss_early_stop': train_loss_early_stop,
             'run_number': run_number,
             'use_gpu': use_gpu,
-            'test_mode': True,
         }, 'h={} b={} lr={} e={} [{} 5.2]'.format(
             layer_width,
             batch_size,
             learning_rate,
             epochs,
-            'standard'
-        ))
-
-        # Standard parametrization, L2 reg
-        perform_run({
-            'parametrization': 'standard',
-            'batch_size': batch_size,
-            'layer_width': layer_width,
-            'learning_rate': learning_rate,
-            'l2_weight': regularization_weight,
-            'epochs': epochs,
-            'train_loss_early_stop': train_loss_early_stop,
-            'run_number': run_number,
-            'use_gpu': use_gpu,
-            'test_mode': True,
-        }, 'h={} b={} lr={} e={} L2={} [{} 5.2]'.format(
-            layer_width,
-            batch_size,
-            learning_rate,
-            epochs,
-            regularization_weight,
             'standard'
         ))
 
@@ -242,13 +220,46 @@ def run_experiment_5_2():
             'train_loss_early_stop': train_loss_early_stop,
             'run_number': run_number,
             'use_gpu': use_gpu,
-            'test_mode': True,
         }, 'h={} b={} lr={} e={} [{} 5.2]'.format(
             layer_width,
             batch_size,
             learning_rate,
             epochs,
             'svd'
+        ))
+
+
+def logan_5_2():
+    epochs = 100
+    batch_size = 128
+    train_loss_early_stop = 0.00001
+
+    layer_width = 64
+    learning_rate = 0.01
+    regularization_weight = 0.0001
+
+    for run_number in range(100):
+        # Run on CPU up to width 128, as it's faster
+        use_gpu = layer_width >= 256
+
+        # Standard parametrization, L2 reg
+        perform_run({
+            'parametrization': 'standard',
+            'batch_size': batch_size,
+            'layer_width': layer_width,
+            'learning_rate': learning_rate,
+            'l2_weight': regularization_weight,
+            'epochs': epochs,
+            'train_loss_early_stop': train_loss_early_stop,
+            'run_number': run_number,
+            'use_gpu': use_gpu,
+        }, 'h={} b={} lr={} e={} L2={} [{} 5.2]'.format(
+            layer_width,
+            batch_size,
+            learning_rate,
+            epochs,
+            regularization_weight,
+            'standard'
         ))
 
         # SVD parametrization, L2 reg
@@ -262,7 +273,6 @@ def run_experiment_5_2():
             'train_loss_early_stop': train_loss_early_stop,
             'run_number': run_number,
             'use_gpu': use_gpu,
-            'test_mode': True,
         }, 'h={} b={} lr={} e={} l_2sigma={} [{} 5.2]'.format(
             layer_width,
             batch_size,
@@ -284,9 +294,9 @@ def run_test_experiment():
         'train_loss_early_stop': 0.001,
         'run_number': 1,
         'use_gpu': False,
-        'test_mode': True,
+        'test_mode': True
     }, 'fast_test')
 
 
 if __name__ == "__main__":
-    run_experiment_5_2()
+    logan_5_2()
