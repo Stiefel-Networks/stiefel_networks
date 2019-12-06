@@ -28,13 +28,9 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
             loss = get_loss(labels, predictions)
 
             if 'l2_sigma_weight' in args:
-                weight = args['l2_sigma_weight']
-                singular_values_sets = f_network.singular_value_sets()
-                regularization_term = 0
-                for singular_values_set in singular_values_sets:
-                    regularization_term += torch.norm(singular_values_set) * weight
-
-                loss = loss + regularization_term
+                loss = loss + l2_sigma_regularizer(args['l2_sigma_weight'], f_network)
+            if 'stable_rank_weight' in args:
+                loss = loss + stable_rank_regularizer(args['stable_rank_weight'], f_network)
 
             loss.backward()
             optimizer.step()
@@ -51,6 +47,24 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
             t.update()
 
     return samples_trained
+
+
+def l2_sigma_regularizer(weight, f_network):
+    singular_values_sets = f_network.singular_value_sets()
+    regularization_term = 0
+    for singular_values_set in singular_values_sets:
+        regularization_term += (torch.norm(singular_values_set) ** 2) * weight
+
+    return regularization_term
+
+
+def stable_rank_regularizer(weight, f_network):
+    singular_values_sets = f_network.singular_value_sets()
+    regularization_term = 0
+    for singular_values_set in singular_values_sets:
+        regularization_term += (torch.norm(singular_values_set) ** 2) / (torch.max(singular_values_set) ** 2) * weight
+
+    return regularization_term
 
 
 def perform_run(hyperparams, run_name):
@@ -172,7 +186,7 @@ def run_experiment_5_2():
     layer_width = 128
 
     for run_number in [0, 1]:
-        for l2_sigma_weight in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
+        for regularization_weight in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
             # Run on CPU up to width 128, as it's faster
             use_gpu = layer_width >= 256
 
@@ -181,12 +195,38 @@ def run_experiment_5_2():
                 'batch_size': batch_size,
                 'layer_width': layer_width,
                 'learning_rate': learning_rate,
-                'l2_sigma_weight': l2_sigma_weight,
+                'stable_rank_weight': regularization_weight,
                 'epochs': epochs,
                 'train_loss_early_stop': train_loss_early_stop,
                 'run_number': run_number,
                 'use_gpu': use_gpu,
-            }, 'h={} b={} lr={} e={} l2={} [{} 5.2]'.format(layer_width, batch_size, learning_rate, epochs, l2_sigma_weight, parametrization))
+            }, 'h={} b={} lr={} e={} l_SR={} [{} 5.2]'.format(
+                layer_width,
+                batch_size,
+                learning_rate,
+                epochs,
+                regularization_weight,
+                parametrization
+            ))
+
+            perform_run({
+                'parametrization': parametrization,
+                'batch_size': batch_size,
+                'layer_width': layer_width,
+                'learning_rate': learning_rate,
+                'l2_sigma_weight': regularization_weight,
+                'epochs': epochs,
+                'train_loss_early_stop': train_loss_early_stop,
+                'run_number': run_number,
+                'use_gpu': use_gpu,
+            }, 'h={} b={} lr={} e={} l2_SQ={} [{} 5.2]'.format(
+                layer_width,
+                batch_size,
+                learning_rate,
+                epochs,
+                regularization_weight,
+                parametrization
+            ))
 
 def run_test_experiment():
     # Fast version for testing
