@@ -1,4 +1,5 @@
 *.idea
+activate
 
 # Created by https://www.gitignore.io/api/vim,osx,python,pycharm,virtualenv,jupyternotebooks
 # Edit at https://www.gitignore.io/?templates=vim,osx,python,pycharm,virtualenv,jupyternotebooks
