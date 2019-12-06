@@ -32,7 +32,7 @@ def run_epoch(args, batches_progress, epoch, f_network, optimizer, run_start, sa
                 singular_values_sets = f_network.singular_value_sets()
                 regularization_term = 0
                 for singular_values_set in singular_values_sets:
-                    regularization_term += torch.norm(singular_values_set) * weight# / torch.sqrt(singular_values_set.numel())
+                    regularization_term += torch.norm(singular_values_set) * weight
 
                 loss = loss + regularization_term
 
@@ -163,7 +163,7 @@ def run_experiment_5_1():
 
 
 def run_experiment_5_2():
-    epochs = 100
+    epochs = 20
     batch_size = 128
     train_loss_early_stop = 0.01
     parametrization = 'svd'
@@ -172,7 +172,7 @@ def run_experiment_5_2():
     layer_width = 128
 
     for run_number in [0, 1]:
-        for l2_sigma_weight in [0.001, 0.01, 0.1]:
+        for l2_sigma_weight in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
             # Run on CPU up to width 128, as it's faster
             use_gpu = layer_width >= 256
 
@@ -186,7 +186,7 @@ def run_experiment_5_2():
                 'train_loss_early_stop': train_loss_early_stop,
                 'run_number': run_number,
                 'use_gpu': use_gpu,
-            }, 'h={} b={} lr={} e={} l2={} [{}]'.format(layer_width, batch_size, learning_rate, epochs, l2_sigma_weight, parametrization))
+            }, 'h={} b={} lr={} e={} l2={} [{} 5.2]'.format(layer_width, batch_size, learning_rate, epochs, l2_sigma_weight, parametrization))
 
 def run_test_experiment():
     # Fast version for testing
