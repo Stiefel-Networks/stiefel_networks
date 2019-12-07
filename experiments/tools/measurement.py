@@ -35,7 +35,7 @@ def stable_rank(layer_singular_values):
     layer_singular_values.sort()
     layer_singular_values = layer_singular_values[::-1]
     frobenius = np.sum(layer_singular_values ** 2)
-    spectral = np.max(layer_singular_values) ** 2
+    spectral = np.max(layer_singular_values ** 2)
     return frobenius / spectral
 
 
