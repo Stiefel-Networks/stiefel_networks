@@ -35,12 +35,13 @@ def plot_epoch_test_train(run_data, metric, plot_directory=None):
 
     if metric == 'loss':
         ax.plot(x, [0.01 for _ in x], label="0.01", linestyle='dashed')
+        ax.set_ylim((0., 0.3))
     else:
         ax.plot(x, [100 for _ in x], label="100%", linestyle='dashed')
+        ax.set_ylim((0., 100))
 
     network_name = get_architecture(run_data)
 
-    ax.set_ylim((0., 0.3))
     ax.set_title("Width {} {}\n{} vs. Epoch".format(
         run_data["hyperparameters"]["layer_width"],
         network_name,
@@ -167,8 +168,9 @@ def plot_singular_value_histograms(run_data, num_snapshots, plot_directory=None)
             # Drop first row as all are ones due to orthogonal initialization, and transpose each so time is horizontal axis.
             singular_values = np.array(snapshot, dtype=float)
 
-            if np.min(singular_values) < 0.0 or np.max(singular_values) > 2.5:
-                print("WARNING!\n Singular value outside of histogram range (0.0, 2.5):")
+            max_sing_val = 5
+            if np.min(singular_values) < 0.0 or np.max(singular_values) > max_sing_val:
+                print(f'WARNING!\n Singular value outside of histogram range (0.0, {max_sing_val}):')
                 print("Layer {} min, max:  ({}, {})".format(layer, np.min(singular_values), np.max(singular_values)))
 
             _n, _bins, _patches = axes[layer, snapshot_number].hist(singular_values, num_bins, range=(0.0, 2.5))
