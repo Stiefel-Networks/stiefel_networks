@@ -11,33 +11,34 @@ class FNetwork(nn.Module):
         self.parametrization = parametrization
         self.linearities = []
 
-        Linearity = None
-        if parametrization == "svd":
-            Linearity = SVDLinear
-        elif parametrization == "standard":
-            Linearity = nn.Linear
-            # TODO we should remove an experimental variable by orthogonally initializing all of these
-        else:
-            raise Exception("Unknown parametrization.  Must be 'svd' or 'standard'")
-
-        self.first = Linearity(input_dim, layer_width, bias)
+        self.first = self.initialize_linearity(input_dim, layer_width, bias)
         self.linearities.append(self.first)
 
         hidden = []
         for _layer in range(layer_count):
-            linearity = Linearity(layer_width, layer_width, bias)
+            linearity = self.initialize_linearity(layer_width, layer_width, bias)
             hidden.append(linearity)
             self.linearities.append(linearity)
 
             hidden.append(nn.ReLU())
-            # TODO: are we sure we should be batchnorming?
             if batch_norm:
                 hidden.append(nn.BatchNorm1d(layer_width))
 
         self.hidden = nn.Sequential(*hidden)
 
-        self.last = Linearity(layer_width, output_dim, bias)
+        self.last = self.initialize_linearity(layer_width, output_dim, bias)
         self.linearities.append(self.last)
+
+    def initialize_linearity(self, input_dim, layer_width, bias):
+        if self.parametrization == "svd":
+            linearity = SVDLinear(input_dim, layer_width, bias)
+        elif self.parametrization == "standard":
+            linearity = nn.Linear(input_dim, layer_width, bias)
+            nn.init.orthogonal_(linearity.weight)
+        else:
+            raise Exception("Unknown parametrization.  Must be 'svd' or 'standard'")
+
+        return linearity
 
     def forward(self, inputs):
         out = self.first(inputs)
@@ -45,7 +46,6 @@ class FNetwork(nn.Module):
         out = self.hidden(out)
         out = self.last(out)
 
-        # TODO: this might be the right place to construct a softmax, but not right now!
         return out
 
     def singular_value_sets(self):
